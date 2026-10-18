@@ -4,7 +4,10 @@ Real [Omarchy](https://omarchy.org) on an Android phone. No root, no
 bootloader unlock, nothing wiped: the phone keeps running Android, and Omarchy
 runs in a virtual machine on it, drawn by the phone's own GPU.
 
-![Omarchy's Hyprland desktop on a Galaxy S23](devices/samsung-dm1q-sm-s911u/desktop.png)
+<p>
+  <img src="devices/samsung-dm1q-sm-s911u/desktop-portrait.png" alt="Omarchy in portrait on a Galaxy S23" height="520">
+  <img src="devices/samsung-dm1q-sm-s911u/desktop.png" alt="Omarchy in landscape on a Galaxy S23" height="240">
+</p>
 
 > Unofficial community project, not affiliated with Omarchy, Basecamp or 37signals.
 
@@ -17,8 +20,10 @@ runs in a virtual machine on it, drawn by the phone's own GPU.
 - **GPU-accelerated graphics.** The VM's OpenGL runs on the phone's GPU
   (virgl → Zink → Turnip, the open Vulkan driver for Qualcomm Adreno).
 - **A home-screen icon.** Tap it to boot Omarchy, tap it again to come back to it.
-- **Portrait or landscape**, touch as a mouse, the phone's keyboard, and a key
-  bar with the keys phones lack: SUPER, ESC, CTRL, ALT, TAB, arrows.
+- **Portrait or landscape, switchable live** with the ROTATE key: Omarchy
+  re-lays itself out for the new shape.
+- Touch as a mouse, the phone's keyboard, and a key bar with the keys phones
+  lack: SUPER, ESC, CTRL, ALT, TAB, arrows.
 
 ## Honest status
 
@@ -40,12 +45,13 @@ GPU); everything the CPU does is several times slower than native.
   limits it to the phone's efficiency cores. Launched over USB with
   `scripts/vm-up.sh`, the VM gets every core and is several times faster. The
   standalone app on the [roadmap](#roadmap) removes this limit.
-- **"Your config has errors … execution timed out".** Hyprland gives each Lua
-  config reload 1.5 s, a constant compiled into Hyprland, and Omarchy's config
-  can take longer on an emulated CPU. Part of the config (some keybindings)
-  stays unloaded until a reload fits; a small service in the guest retries in
-  the background. Making the limit configurable needs a change upstream in
-  Hyprland.
+- **Hyprland is patched in the guest.** Hyprland gives each Lua config reload
+  1.5 s, a constant compiled into it, and Omarchy's config takes longer on an
+  emulated CPU ("Your config has errors … execution timed out"). The guest
+  setup rewrites that one instruction to 15 s, only when it matches exactly,
+  and re-applies it after Hyprland updates (details in
+  [docs/debugging.md](docs/debugging.md)). A configurable limit upstream
+  would make this unnecessary.
 - No sound, camera or phone/SMS inside Omarchy, and no shared clipboard yet.
 - Omarchy is a keyboard-driven desktop; a USB-C or Bluetooth keyboard helps a lot.
 
@@ -107,12 +113,19 @@ Termux, and lets Termux start from the home screen.
 
 - **Start:** tap the Omarchy icon. The first boot asks for keyboard layout,
   name and password, then starts the desktop. Later boots go straight to it.
-- **SUPER** on the key bar is Omarchy's main key, and the key-bar modifiers
-  are sticky: tap SUPER, then the key. SUPER then ↵ opens a terminal, SUPER
-  then SPACE opens the app launcher.
-- **Typing:** the keyboard key on the bar opens the phone's keyboard.
-- **Orientation:** open Termux and run `omarchy portrait` or
-  `omarchy landscape`, after shutting Omarchy down. The choice sticks.
+- **The key bar:**
+
+  ```
+  ROTATE  ESC  TAB  CTRL   ALT  SHIFT  ↑  ⌨
+  SUPER   F1   ↵    SPACE  ⌫    ←      ↓  →
+  ```
+
+  SUPER is Omarchy's main key, and the bar's modifiers are sticky: tap SUPER,
+  then the key. SUPER then ↵ opens a terminal, SUPER then SPACE the app
+  launcher. ⌨ opens the phone's keyboard.
+- **Orientation:** ROTATE flips between portrait and landscape; Omarchy
+  redraws for the new shape in under a minute. The choice is remembered for
+  the next boot (or set it in Termux: `omarchy portrait`, `omarchy landscape`).
 - **Full speed:** with the phone on USB, `scripts/vm-up.sh` boots it with every
   CPU core (see [Known limits](#honest-status)).
 - **Stop:** shut down from inside Omarchy, like any computer.
@@ -137,9 +150,14 @@ Termux; [phone/start-vm.sh](phone/start-vm.sh) lists them all.
   line, copies [phone/guest-setup.sh](phone/guest-setup.sh) to its boot
   partition, and passes a one-line systemd unit (as a credential) that runs
   it before the first login. Omarchy itself is never modified.
-- **The screen.** Termux:X11 shows QEMU's window full screen (a one-rule
-  Openbox keeps it there) at 150% scale, which is readable on a phone and
-  leaves fewer pixels for the emulated CPU to draw.
+- **The screen.** Termux:X11 shows QEMU's window full screen (Openbox keeps
+  it there) at 150% scale, which is readable on a phone and leaves fewer
+  pixels for the emulated CPU to draw.
+- **Rotation.** ROTATE sends CTRL+ALT+F12, which Openbox turns into
+  `omarchy-rotate`: Termux:X11 changes orientation, Openbox resizes QEMU's
+  window, and QEMU gives the virtual monitor a new preferred mode. Hyprland
+  keeps the mode list it read at startup, so a small watcher in the guest
+  (`omarchy-mobile-screen`) sets the new mode explicitly.
 - **Driving the phone from the computer.** The Termux GitHub build is
   debuggable, so `adb shell run-as com.termux` reaches its files and
   environment, and `scripts/termux-run.sh` pipes setup scripts into it.

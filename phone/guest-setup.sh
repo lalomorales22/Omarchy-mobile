@@ -89,11 +89,15 @@ Exec = /usr/local/bin/omarchy-mobile-patch-hyprland
 EOF
 /usr/local/bin/omarchy-mobile-patch-hyprland || true
 
-# If a future Hyprland no longer matches the patch above, retry the reload
-# until one fits.
+# Hyprland only removes the error banner after a reload that succeeds, and a
+# startup reload can leave one behind even when `hyprctl configerrors` is
+# already empty. Reload once the session has settled, then keep retrying while
+# a reload still times out (a future Hyprland the patch above doesn't match).
 conf /usr/local/bin/omarchy-mobile-settle <<'EOF'
 #!/bin/sh
-for _ in $(seq 1 15); do
+sleep 180
+hyprctl reload >/dev/null 2>&1 || true
+for _ in $(seq 1 10); do
   sleep 60
   errors=$(hyprctl -j configerrors 2>/dev/null) || continue
   case $errors in *"timed out"*) hyprctl reload >/dev/null 2>&1 || true ;; *) exit 0 ;; esac
@@ -115,3 +119,76 @@ WantedBy=graphical-session.target
 EOF
 mkdir -p /etc/systemd/user/graphical-session.target.wants
 ln -sfn ../omarchy-mobile-settle.service /etc/systemd/user/graphical-session.target.wants/omarchy-mobile-settle.service
+
+# Rotation: when the phone turns, QEMU gives the virtual monitor a new preferred
+# mode, but Hyprland keeps the mode list it read at startup, so "preferred"
+# still means the old shape and the picture is stretched. Follow the kernel's
+# preferred mode instead, and re-apply it after every config reload.
+conf /usr/local/bin/omarchy-mobile-screen <<'EOF'
+#!/usr/bin/python3 -I
+import glob
+import os
+import socket
+import subprocess
+
+
+def screens():
+    found = []
+    for connector in glob.glob("/sys/class/drm/card*-Virtual-*"):
+        try:
+            with open(connector + "/status") as f:
+                if f.read().strip() != "connected":
+                    continue
+            with open(connector + "/modes") as f:
+                mode = f.readline().strip()
+        except OSError:
+            continue
+        if mode:
+            found.append((os.path.basename(connector).split("-", 1)[1], mode))
+    return found
+
+
+def apply(current):
+    for output, mode in current:
+        lua = f'hl.monitor({{ output = "{output}", mode = "{mode}", position = "0x0", scale = "auto" }})'
+        subprocess.run(["hyprctl", "eval", lua], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+events = socket.socket(socket.AF_UNIX)
+events.connect(f"{os.environ['XDG_RUNTIME_DIR']}/hypr/{os.environ['HYPRLAND_INSTANCE_SIGNATURE']}/.socket2.sock")
+events.settimeout(1)
+last = screens()
+apply(last)
+pending = b""
+while True:
+    try:
+        data = events.recv(4096)
+        if not data:
+            break
+        pending += data
+        *lines, pending = pending.split(b"\n")
+        if any(line.startswith((b"configreloaded>>", b"monitoradded")) for line in lines):
+            apply(screens())
+    except socket.timeout:
+        pass
+    now = screens()
+    if now != last:
+        last = now
+        apply(now)
+EOF
+chmod 755 /usr/local/bin/omarchy-mobile-screen
+conf /etc/systemd/user/omarchy-mobile-screen.service <<'EOF'
+[Unit]
+Description=Omarchy Mobile: follow the phone's screen orientation
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/local/bin/omarchy-mobile-screen
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
+EOF
+ln -sfn ../omarchy-mobile-screen.service /etc/systemd/user/graphical-session.target.wants/omarchy-mobile-screen.service

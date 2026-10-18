@@ -30,6 +30,16 @@ exec bash "$HOME/omarchy-vm/start-vm.sh" "$@"
 OMARCHY_BIN
 chmod 700 "$PREFIX/bin/omarchy"
 
+cat > "$PREFIX/bin/omarchy-rotate" <<'OMARCHY_ROTATE'
+#!/data/data/com.termux/files/usr/bin/bash
+# Flip Omarchy between portrait and landscape (the key bar's ROTATE button).
+f="$HOME/omarchy-vm/orientation"
+if [ "$(cat "$f" 2>/dev/null)" = portrait ]; then o=landscape; else o=portrait; fi
+echo "$o" > "$f"
+echo "forceOrientation=$o" | termux-x11-preference >/dev/null 2>&1
+OMARCHY_ROTATE
+chmod 700 "$PREFIX/bin/omarchy-rotate"
+
 # Termux:Widget picks up scripts in ~/.shortcuts and icons in ~/.shortcuts/icons.
 mkdir -p "$HOME/.shortcuts/icons"
 printf '#!/data/data/com.termux/files/usr/bin/bash\nexec omarchy\n' > "$HOME/.shortcuts/Omarchy"

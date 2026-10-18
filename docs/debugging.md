@@ -66,11 +66,27 @@ running as the Termux app can reach the socket.
 - **Red "Your config has errors … [Lua] execution timed out in config reload"
   banner.** Hyprland stops any Lua config (re)load after 1.5 s
   (`LUA_TIMEOUT_CONFIG_RELOAD_MS` in Hyprland's `ConfigManager.hpp`, not
-  configurable), and evaluating Omarchy's config can take longer under TCG.
-  The rest of that file's config is skipped. `omarchy-mobile-settle.service`
-  (installed by `guest-setup.sh`) reloads every minute until a reload fits.
+  configurable), and evaluating Omarchy's config can take longer under TCG:
+  it spawns shell commands, and loads the titlebar plugin whenever a window
+  floats. The rest of that file's config is skipped. `guest-setup.sh` installs
+  `omarchy-mobile-patch-hyprland`, which rewrites the one instruction that
+  carries the limit (`mov w4, #1500`, guardedPCall's timeoutMs) to `#15000`
+  when it matches exactly once; a pacman hook re-runs it after Hyprland
+  updates. A running Hyprland keeps the old code until the session restarts.
+  Hyprland removes the banner only after a reload succeeds, so
+  `omarchy-mobile-settle.service` reloads once the session has settled.
   Note that `hyprctl` prints nothing when Hyprland's socket is too slow to
   answer, so test with `hyprctl -j configerrors` and its exit code.
+- **Stretched picture after rotating.** QEMU gives the virtual monitor a new
+  preferred mode, but Hyprland keeps the mode list it read at startup.
+  `omarchy-mobile-screen.service` watches `/sys/class/drm/card*-Virtual-*/modes`
+  and sets the new mode with `hyprctl eval 'hl.monitor(...)'`.
+- **ROTATE does nothing.** Openbox has to see CTRL+ALT+F12. If QEMU's window
+  title says "Press Ctrl-Alt-G to exit grab", QEMU holds the keyboard; it does
+  that with its own `-full-screen`, which `start-vm.sh` therefore leaves off.
+- **Restarting the desktop session from the debug shell:** stop the user
+  manager too (`systemctl stop sddm user@1000.service; systemctl start sddm`).
+  Otherwise uwsm finds the old session and the new autologin exits at once.
 
 - **Limine: "PANIC: linux: failed to open kernel".** The ESP's `limine.conf`
   points at a kernel that is gone. The factory image boots

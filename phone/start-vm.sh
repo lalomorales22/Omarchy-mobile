@@ -105,15 +105,23 @@ if ! xrandr >/dev/null 2>&1; then
   for _ in $(seq 1 20); do xrandr >/dev/null 2>&1 && break; sleep 0.5; done
 fi
 
-# Without a window manager nothing honours QEMU's fullscreen request, and the
-# window sits centred at 640x480. Openbox with one rule: everything fullscreen.
-if ! pgrep -x openbox >/dev/null; then
-  cat >"$VM/openbox-rc.xml" <<'XML'
+# Openbox keeps QEMU's window fullscreen, and turns the key bar's ROTATE
+# button (CTRL+ALT+F12) into omarchy-rotate: the X screen turns, Openbox
+# resizes QEMU's window, and QEMU hands the guest its new screen size. QEMU's
+# own -full-screen is left off on purpose: it grabs the keyboard, and then
+# Openbox never sees the ROTATE key.
+cat >"$VM/openbox-rc.xml" <<'XML'
 <?xml version="1.0"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc">
+  <keyboard>
+    <keybind key="C-A-F12"><action name="Execute"><command>omarchy-rotate</command></action></keybind>
+  </keyboard>
   <applications><application class="*"><decor>no</decor><fullscreen>yes</fullscreen></application></applications>
 </openbox_config>
 XML
+if pgrep -x openbox >/dev/null; then
+  openbox --reconfigure
+else
   openbox --config-file "$VM/openbox-rc.xml" >"$VM/openbox.log" 2>&1 &
 fi
 
@@ -130,7 +138,7 @@ displayResolutionMode=scaled
 displayScale=150
 touchMode=Simulated touchscreen
 Reseed=false
-extra_keys_config=[['ESC','TAB',{key: 'META', display: 'SUPER'},'CTRL','ALT','SHIFT','UP','KEYBOARD'],['F1','F2','ENTER','SPACE','BKSP','LEFT','DOWN','RIGHT']]
+extra_keys_config=[[{macro: 'CTRL ALT F12', display: 'ROTATE'},'ESC','TAB','CTRL','ALT','SHIFT','UP','KEYBOARD'],[{key: 'META', display: 'SUPER'},'F1','ENTER','SPACE','BKSP','LEFT','DOWN','RIGHT']]
 EOF
 
 # The X screen follows the app once it has rotated; the guest takes its size.
@@ -169,7 +177,7 @@ exec qemu-system-aarch64 \
   -netdev user,id=net,hostfwd=tcp:127.0.0.1:2222-:22 \
   -device virtio-net-pci,netdev=net,romfile= \
   -device "$gpu,max_outputs=1,xres=${SIZE%x*},yres=${SIZE#*x},romfile=" \
-  -display "$display,show-cursor=on" -full-screen \
+  -display "$display,show-cursor=on" \
   -device virtio-keyboard-pci,romfile= \
   -device virtio-tablet-pci,romfile= \
   -object rng-random,id=rng,filename=/dev/urandom \
