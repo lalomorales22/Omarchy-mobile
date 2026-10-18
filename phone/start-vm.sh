@@ -128,14 +128,15 @@ if ! pgrep -f '^omarchy-rotate-keys$' >/dev/null; then
 fi
 
 # Termux:X11 settings: orientation, fullscreen at 150% (readable on a phone,
-# fewer pixels for the emulated CPU), tap-to-click, the soft keyboard drawn
+# fewer pixels for the emulated CPU), kept out of the camera cutout (which also
+# clears that side's rounded corners), tap-to-click, the soft keyboard drawn
 # over the screen rather than resizing it (a resize would make Hyprland
 # re-mode), and a key bar with SUPER, which Android keyboards lack. Fed as
 # key=value lines: the argument form splits on ':', which the key bar needs.
 termux-x11-preference >/dev/null 2>&1 <<EOF || echo "warning: Termux:X11 did not take its settings; is the app open?" >&2
 forceOrientation=$ORIENTATION
 fullscreen=true
-hideCutout=true
+hideCutout=false
 displayResolutionMode=scaled
 displayScale=150
 touchMode=Simulated touchscreen

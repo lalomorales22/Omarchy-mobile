@@ -92,6 +92,16 @@ running as the Termux app can reach the socket.
 - **Restarting the desktop session from the debug shell:** stop the user
   manager too (`systemctl stop sddm user@1000.service; systemctl start sddm`).
   Otherwise uwsm finds the old session and the new autologin exits at once.
+- **A dock of app icons at the bottom, and windows open floating.** That
+  workspace is in Omarchy 4's floating layout; the dock (`omarchy.dock`) only
+  shows on floating workspaces. SUPER+L cycles tiling → floating → scrolling,
+  SUPER+ALT+L goes back, and the bar's first icon shows the current mode.
+  Omarchy remembers it per workspace.
+- **Bar or windows under the camera or rounded corners.** `start-vm.sh` sets
+  Termux:X11's `hideCutout=false`, so the picture stays out of the cutout
+  (top edge in portrait, the camera side in landscape; that also clears that
+  side's corners). In landscape the far side's rounded corners can still
+  touch the last bar icon.
 
 - **Limine: "PANIC: linux: failed to open kernel".** The ESP's `limine.conf`
   points at a kernel that is gone. The factory image boots
