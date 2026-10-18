@@ -123,7 +123,7 @@ fi
 # while its window has focus, so a window-manager binding never fires;
 # omarchy-rotate-keys (phone/rotate-keys.c) reads XInput2 raw key events,
 # which arrive regardless, and runs omarchy-rotate.
-if ! pgrep -x omarchy-rotate-k >/dev/null; then
+if ! pgrep -f '^omarchy-rotate-keys$' >/dev/null; then
   omarchy-rotate-keys >"$VM/rotate-keys.log" 2>&1 &
 fi
 
