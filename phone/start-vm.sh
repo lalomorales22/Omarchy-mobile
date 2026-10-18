@@ -105,17 +105,11 @@ if ! xrandr >/dev/null 2>&1; then
   for _ in $(seq 1 20); do xrandr >/dev/null 2>&1 && break; sleep 0.5; done
 fi
 
-# Openbox keeps QEMU's window fullscreen, and turns the key bar's ROTATE
-# button (CTRL+ALT+F12) into omarchy-rotate: the X screen turns, Openbox
-# resizes QEMU's window, and QEMU hands the guest its new screen size. QEMU's
-# own -full-screen is left off on purpose: it grabs the keyboard, and then
-# Openbox never sees the ROTATE key.
+# Openbox keeps QEMU's window fullscreen, and resizes it when the X screen
+# turns; QEMU then hands the guest its new screen size.
 cat >"$VM/openbox-rc.xml" <<'XML'
 <?xml version="1.0"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc">
-  <keyboard>
-    <keybind key="C-A-F12"><action name="Execute"><command>omarchy-rotate</command></action></keybind>
-  </keyboard>
   <applications><application class="*"><decor>no</decor><fullscreen>yes</fullscreen></application></applications>
 </openbox_config>
 XML
@@ -123,6 +117,14 @@ if pgrep -x openbox >/dev/null; then
   openbox --reconfigure
 else
   openbox --config-file "$VM/openbox-rc.xml" >"$VM/openbox.log" 2>&1 &
+fi
+
+# The key bar's ROTATE button sends CTRL+SHIFT+F12. QEMU grabs the keyboard
+# while its window has focus, so a window-manager binding never fires;
+# omarchy-rotate-keys (phone/rotate-keys.c) reads XInput2 raw key events,
+# which arrive regardless, and runs omarchy-rotate.
+if ! pgrep -x omarchy-rotate-k >/dev/null; then
+  omarchy-rotate-keys >"$VM/rotate-keys.log" 2>&1 &
 fi
 
 # Termux:X11 settings: orientation, fullscreen at 150% (readable on a phone,
@@ -138,7 +140,7 @@ displayResolutionMode=scaled
 displayScale=150
 touchMode=Simulated touchscreen
 Reseed=false
-extra_keys_config=[[{macro: 'CTRL ALT F12', display: 'ROTATE'},'ESC','TAB','CTRL','ALT','SHIFT','UP','KEYBOARD'],[{key: 'META', display: 'SUPER'},'F1','ENTER','SPACE','BKSP','LEFT','DOWN','RIGHT']]
+extra_keys_config=[[{macro: 'CTRL SHIFT F12', display: 'ROTATE'},'ESC','TAB','CTRL','ALT','SHIFT','UP','KEYBOARD'],[{key: 'META', display: 'SUPER'},'F1','ENTER','SPACE','BKSP','LEFT','DOWN','RIGHT']]
 EOF
 
 # The X screen follows the app once it has rotated; the guest takes its size.

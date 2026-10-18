@@ -16,6 +16,9 @@ cd "$(dirname "$0")/.."
   echo 'cat > "$HOME/omarchy-vm/guest-setup.sh" <<'"'"'OMARCHY_GUEST_SETUP'"'"''
   cat phone/guest-setup.sh
   echo 'OMARCHY_GUEST_SETUP'
+  echo 'cat > "$PREFIX/tmp/omarchy-rotate-keys.c" <<'"'"'OMARCHY_ROTATE_KEYS'"'"''
+  cat phone/rotate-keys.c
+  echo 'OMARCHY_ROTATE_KEYS'
   cat <<'EOF'
 cat > "$PREFIX/bin/omarchy" <<'OMARCHY_BIN'
 #!/data/data/com.termux/files/usr/bin/bash
@@ -29,6 +32,9 @@ termux-wake-lock
 exec bash "$HOME/omarchy-vm/start-vm.sh" "$@"
 OMARCHY_BIN
 chmod 700 "$PREFIX/bin/omarchy"
+
+clang -O2 -Wall -o "$PREFIX/bin/omarchy-rotate-keys" "$PREFIX/tmp/omarchy-rotate-keys.c" -lX11 -lXi
+rm -f "$PREFIX/tmp/omarchy-rotate-keys.c"
 
 cat > "$PREFIX/bin/omarchy-rotate" <<'OMARCHY_ROTATE'
 #!/data/data/com.termux/files/usr/bin/bash

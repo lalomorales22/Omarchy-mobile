@@ -153,8 +153,10 @@ Termux; [phone/start-vm.sh](phone/start-vm.sh) lists them all.
 - **The screen.** Termux:X11 shows QEMU's window full screen (Openbox keeps
   it there) at 150% scale, which is readable on a phone and leaves fewer
   pixels for the emulated CPU to draw.
-- **Rotation.** ROTATE sends CTRL+ALT+F12, which Openbox turns into
-  `omarchy-rotate`: Termux:X11 changes orientation, Openbox resizes QEMU's
+- **Rotation.** ROTATE sends CTRL+SHIFT+F12. QEMU holds the keyboard grab, so
+  a tiny listener ([phone/rotate-keys.c](phone/rotate-keys.c), built on the
+  phone) reads XInput2 raw key events, which arrive regardless, and runs
+  `omarchy-rotate`. Termux:X11 changes orientation, Openbox resizes QEMU's
   window, and QEMU gives the virtual monitor a new preferred mode. Hyprland
   keeps the mode list it read at startup, so a small watcher in the guest
   (`omarchy-mobile-screen`) sets the new mode explicitly.

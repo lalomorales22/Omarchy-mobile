@@ -81,9 +81,14 @@ running as the Termux app can reach the socket.
   preferred mode, but Hyprland keeps the mode list it read at startup.
   `omarchy-mobile-screen.service` watches `/sys/class/drm/card*-Virtual-*/modes`
   and sets the new mode with `hyprctl eval 'hl.monitor(...)'`.
-- **ROTATE does nothing.** Openbox has to see CTRL+ALT+F12. If QEMU's window
-  title says "Press Ctrl-Alt-G to exit grab", QEMU holds the keyboard; it does
-  that with its own `-full-screen`, which `start-vm.sh` therefore leaves off.
+- **ROTATE does nothing.** QEMU grabs the keyboard whenever its window has
+  focus and the pointer is inside it (`absolute_mouse_grab` in QEMU's
+  `ui/sdl2.c`, with `SDL_HINT_GRAB_KEYBOARD`), so window-manager key bindings
+  never fire; Openbox bindings did not fire on Termux:X11 even without the
+  grab. `omarchy-rotate-keys` listens for XInput2 raw key events instead. Check
+  it runs (`pgrep -a omarchy-rotate` in Termux) and see
+  `~/omarchy-vm/rotate-keys.log`. The combo is CTRL+SHIFT+F12, not CTRL+ALT,
+  because CTRL+ALT+F-keys switch virtual terminals inside the guest.
 - **Restarting the desktop session from the debug shell:** stop the user
   manager too (`systemctl stop sddm user@1000.service; systemctl start sddm`).
   Otherwise uwsm finds the old session and the new autologin exits at once.

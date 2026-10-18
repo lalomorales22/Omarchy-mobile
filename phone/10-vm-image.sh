@@ -14,8 +14,9 @@ PARTS=(
 VM="$HOME/omarchy-vm"
 DISK="$VM/omarchy.img"
 
-# mtools + fdisk let start-vm.sh edit the guest's FAT boot partition offline.
-apt-get install -y qemu-system-aarch64 qemu-utils zstd mtools fdisk socat openbox xorg-xrandr
+# mtools + fdisk let start-vm.sh edit the guest's FAT boot partition offline;
+# clang, libx11 and libxi build the ROTATE key listener (phone/rotate-keys.c).
+apt-get install -y qemu-system-aarch64 qemu-utils zstd mtools fdisk socat openbox xorg-xrandr clang libx11 libxi
 
 mkdir -p "$VM/download"
 cd "$VM/download"
