@@ -33,8 +33,14 @@ no display or GPU driver yet as of 2026-10).
 | ~17–33 min | `omarchy-provision-hardware`: pacman keyring, ~50 deferred hardware steps, initramfs rebuild |
 | ~35 min | Omarchy owner setup on tty1 |
 
-Later boots skip the provisioning. The default CPU model is now
-`max,sve=off,sme=off,pauth=off`, which should cut this down; to be re-measured.
+## Later boots (portrait, `max,sve=off,sme=off,pauth=off`, 8 vCPUs, 4 GB)
+
+| From launch | Over USB, all cores | From the icon, cores 0–2 |
+|---|---|---|
+| Root shell on hvc1 (systemd up) | 2.3 min | 4.9 min |
+| System `running`, no emergency shell | ~6 min | |
+| Hyprland started | 7.7 min | ~19 min |
+| Omarchy bar and wallpaper drawn | 14 min | not reached at 22 min |
 
 ## CPU cores: icon launch vs USB launch
 

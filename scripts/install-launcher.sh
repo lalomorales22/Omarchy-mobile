@@ -13,6 +13,9 @@ cd "$(dirname "$0")/.."
   echo 'cat > "$HOME/omarchy-vm/start-vm.sh" <<'"'"'OMARCHY_START_VM'"'"''
   cat phone/start-vm.sh
   echo 'OMARCHY_START_VM'
+  echo 'cat > "$HOME/omarchy-vm/guest-setup.sh" <<'"'"'OMARCHY_GUEST_SETUP'"'"''
+  cat phone/guest-setup.sh
+  echo 'OMARCHY_GUEST_SETUP'
   cat <<'EOF'
 cat > "$PREFIX/bin/omarchy" <<'OMARCHY_BIN'
 #!/data/data/com.termux/files/usr/bin/bash

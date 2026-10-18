@@ -59,9 +59,18 @@ running as the Termux app can reach the socket.
   `TimeoutStartSec`, and waitenv's own `UWSM_WAIT_VARNAMES_TIMEOUT` countdown),
   then shuts the session down. SDDM's greeter is a Hyprland too, and SDDM kills
   it after 15 s without a Wayland socket, so it loops. `phone/start-vm.sh`
-  passes the guest a script (as systemd credentials on the kernel command line)
-  that raises all three to 10 minutes before the first autologin. Check with
+  copies `phone/guest-setup.sh` to the guest's boot partition and passes a
+  unit (as a systemd credential on the kernel command line) that runs it,
+  raising all three to 10 minutes before the first autologin. Check with
   `scripts/vm-shell.sh 'systemctl status omarchy-mobile'`.
+- **Red "Your config has errors … [Lua] execution timed out in config reload"
+  banner.** Hyprland stops any Lua config (re)load after 1.5 s
+  (`LUA_TIMEOUT_CONFIG_RELOAD_MS` in Hyprland's `ConfigManager.hpp`, not
+  configurable), and evaluating Omarchy's config can take longer under TCG.
+  The rest of that file's config is skipped. `omarchy-mobile-settle.service`
+  (installed by `guest-setup.sh`) reloads every minute until a reload fits.
+  Note that `hyprctl` prints nothing when Hyprland's socket is too slow to
+  answer, so test with `hyprctl -j configerrors` and its exit code.
 
 - **Limine: "PANIC: linux: failed to open kernel".** The ESP's `limine.conf`
   points at a kernel that is gone. The factory image boots

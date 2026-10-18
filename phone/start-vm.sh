@@ -50,36 +50,31 @@ fi
 flags="systemd.default_device_timeout_sec=600 systemd.default_timeout_start_sec=300"
 [ "${OMARCHY_VM_DEBUG:-0}" = 1 ] && flags+=" systemd.debug_shell=/dev/hvc1"
 
-# uwsm gives Hyprland 30 s to start, and waitenv 30 s (its unit timeout and its
-# own UWSM_WAIT_VARNAMES_TIMEOUT countdown) to see WAYLAND_DISPLAY; under TCG
-# each takes about a minute, and the first autologin fails before anyone could
-# fix it from inside. So the fix rides in as systemd credentials: a script, and
-# a unit (systemd.extra-unit.*) that runs it before sysinit.target, writing
-# user-manager drop-ins into the guest's /etc.
-tweak_sh='set -e
-for u in wayland-wm@ wayland-wm-env@ wayland-session-waitenv; do
-  mkdir -p /etc/systemd/user/$u.service.d
-  printf "[Service]\nTimeoutStartSec=600\nTimeoutStopSec=60\nEnvironment=UWSM_WAIT_VARNAMES_TIMEOUT=600\n" >/etc/systemd/user/$u.service.d/90-omarchy-mobile.conf
-done
-mkdir -p /etc/systemd/user.conf.d /etc/systemd/system.conf.d
-printf "[Manager]\nDefaultTimeoutStartSec=300\nDefaultEnvironment=UWSM_WAIT_VARNAMES_TIMEOUT=600\n" >/etc/systemd/user.conf.d/90-omarchy-mobile.conf
-printf "[Manager]\nDefaultDeviceTimeoutSec=600\nDefaultTimeoutStartSec=300\n" >/etc/systemd/system.conf.d/90-omarchy-mobile.conf'
-tweak_unit='[Unit]
+# The rest of the guest's adjustments live in guest-setup.sh (uwsm's 30 s
+# limits, Hyprland config reload retries): the first autologin needs them
+# before anyone could log in to fix things. The launcher copies the script to
+# the boot partition, and a unit passed as a systemd credential
+# (systemd.extra-unit.*) runs it before sysinit.target. Only the unit rides on
+# the command line, which arm64 caps at 2048 bytes.
+setup_unit='[Unit]
 Description=Omarchy Mobile guest settings
 DefaultDependencies=no
 After=local-fs.target
 Before=sysinit.target
+ConditionPathExists=/boot/omarchy-mobile/guest-setup.sh
 [Service]
 Type=oneshot
-ImportCredential=omarchy-mobile.sh
-ExecStart=/bin/sh %d/omarchy-mobile.sh'
-flags+=" systemd.set_credential_binary=omarchy-mobile.sh:$(printf '%s\n' "$tweak_sh" | base64 -w0)"
-flags+=" systemd.set_credential_binary=systemd.extra-unit.omarchy-mobile.service:$(printf '%s\n' "$tweak_unit" | base64 -w0)"
+ExecStart=/bin/sh /boot/omarchy-mobile/guest-setup.sh'
+flags+=" systemd.set_credential_binary=systemd.extra-unit.omarchy-mobile.service:$(printf '%s\n' "$setup_unit" | base64 -w0)"
 flags+=" systemd.wants=omarchy-mobile.service"
 
+[ -f "$VM/guest-setup.sh" ] || { echo "no guest-setup.sh; run scripts/install-launcher.sh" >&2; exit 1; }
 esp_start=$(sfdisk -d "$VM/omarchy.img" | awk -F'[=,]' '/omarchy.img1 :/{gsub(/ /,"",$2); print $2}')
 esp="$VM/omarchy.img@@$((esp_start * 512))"
 export MTOOLS_SKIP_CHECK=1
+mmd -i "$esp" ::/omarchy-mobile 2>/dev/null || true
+mtype -i "$esp" ::/omarchy-mobile/guest-setup.sh 2>/dev/null | cmp -s - "$VM/guest-setup.sh" ||
+  mcopy -o -i "$esp" "$VM/guest-setup.sh" ::/omarchy-mobile/guest-setup.sh
 mtype -i "$esp" ::/limine.conf >"$VM/limine.conf.cur"
 cp "$VM/limine.conf.cur" "$VM/limine.conf.work"
 

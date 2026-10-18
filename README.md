@@ -26,11 +26,12 @@ It works, and it is slow. Stock Android gives apps no hardware virtualization,
 so QEMU emulates the CPU instruction by instruction. Graphics are fast (real
 GPU); everything the CPU does is several times slower than native.
 
-| | Galaxy S23 (Snapdragon 8 Gen 2) |
-|---|---|
-| First boot to setup screen | about 35 min (Omarchy creates its keys and finishes hardware setup) |
-| Later boots to desktop | minutes (see [the device notes](devices/samsung-dm1q-sm-s911u/)) |
-| Desktop | usable but sluggish; apps take seconds to open |
+| Galaxy S23 (Snapdragon 8 Gen 2) | Over USB (all cores) | From the icon (efficiency cores) |
+|---|---|---|
+| First boot to setup screen | about 35 min (Omarchy creates its keys and finishes hardware setup) | |
+| Later boots: Hyprland running | about 8 min | about 19 min |
+| Later boots: full desktop (bar, wallpaper) | about 14 min | 25+ min |
+| Desktop | usable but sluggish; apps take seconds to open | slower still |
 
 **Known limits**
 
@@ -39,6 +40,12 @@ GPU); everything the CPU does is several times slower than native.
   limits it to the phone's efficiency cores. Launched over USB with
   `scripts/vm-up.sh`, the VM gets every core and is several times faster. The
   standalone app on the [roadmap](#roadmap) removes this limit.
+- **"Your config has errors … execution timed out".** Hyprland gives each Lua
+  config reload 1.5 s, a constant compiled into Hyprland, and Omarchy's config
+  can take longer on an emulated CPU. Part of the config (some keybindings)
+  stays unloaded until a reload fits; a small service in the guest retries in
+  the background. Making the limit configurable needs a change upstream in
+  Hyprland.
 - No sound, camera or phone/SMS inside Omarchy, and no shared clipboard yet.
 - Omarchy is a keyboard-driven desktop; a USB-C or Bluetooth keyboard helps a lot.
 
@@ -126,9 +133,10 @@ Termux; [phone/start-vm.sh](phone/start-vm.sh) lists them all.
   Android's KGSL interface: `virgl (zink Vulkan 1.4 (Turnip Adreno 740))`.
 - **Slow-boot fixes.** Omarchy's timeouts assume real hardware: systemd waits
   90 s for disks, and uwsm 30 s for Hyprland. Under emulation each needs
-  minutes, so the launcher passes the guest a small script as systemd
-  credentials on the kernel command line. It raises those limits before the
-  first login, without touching Omarchy itself.
+  minutes. The launcher raises the disk timeout on the guest's kernel command
+  line, copies [phone/guest-setup.sh](phone/guest-setup.sh) to its boot
+  partition, and passes a one-line systemd unit (as a credential) that runs
+  it before the first login. Omarchy itself is never modified.
 - **The screen.** Termux:X11 shows QEMU's window full screen (a one-rule
   Openbox keeps it there) at 150% scale, which is readable on a phone and
   leaves fewer pixels for the emulated CPU to draw.
