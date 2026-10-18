@@ -72,7 +72,7 @@ flags+=" systemd.wants=omarchy-mobile.service"
 esp_start=$(sfdisk -d "$VM/omarchy.img" | awk -F'[=,]' '/omarchy.img1 :/{gsub(/ /,"",$2); print $2}')
 esp="$VM/omarchy.img@@$((esp_start * 512))"
 export MTOOLS_SKIP_CHECK=1
-mmd -i "$esp" ::/omarchy-mobile 2>/dev/null || true
+mmd -D s -i "$esp" ::/omarchy-mobile 2>/dev/null || true   # -D s: skip, not prompt, if it exists
 mtype -i "$esp" ::/omarchy-mobile/guest-setup.sh 2>/dev/null | cmp -s - "$VM/guest-setup.sh" ||
   mcopy -o -i "$esp" "$VM/guest-setup.sh" ::/omarchy-mobile/guest-setup.sh
 mtype -i "$esp" ::/limine.conf >"$VM/limine.conf.cur"

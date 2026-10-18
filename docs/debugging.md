@@ -111,6 +111,21 @@ running as the Termux app can reach the socket.
   `protocol: efi` plus `path: boot():/EFI/Linux/omarchy_linux-omarchy.efi`;
   `start-vm.sh` adds the `cmdline:` itself.
 
+- **Boots take two to three times longer from the icon than over USB.**
+  Android keeps an app that is not on screen on the efficiency cores, and
+  with the regular Termux:X11 (its own uid), Termux, and the VM inside it,
+  count as background whenever Omarchy is on screen (`cat /proc/<qemu
+  pid>/cpuset` says `/moderate` on the S23). Install the `sharedUid` build of
+  Termux:X11 instead (`install-apps.sh` does; a regular one has to be
+  uninstalled first): it runs inside the Termux process, and QEMU stays in
+  `/top-app` with every core.
+
+- **`omarchy` typed in a Termux terminal hangs before QEMU starts.** mtools
+  asks on `/dev/tty` what to do about a name clash (the ESP's
+  `omarchy-mobile` directory already exists) when a terminal is available;
+  from the icon or adb there is none. `start-vm.sh` passes `-D s` (skip) now.
+  If an older launcher hangs, press `s` in the Termux terminal.
+
 ## Checking Hyprland from the debug shell
 
 ```sh

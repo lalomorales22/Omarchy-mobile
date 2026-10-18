@@ -33,28 +33,40 @@ no display or GPU driver yet as of 2026-10).
 | ~17–33 min | `omarchy-provision-hardware`: pacman keyring, ~50 deferred hardware steps, initramfs rebuild |
 | ~35 min | Omarchy owner setup on tty1 |
 
-## Later boots (portrait, `max,sve=off,sme=off,pauth=off`, 8 vCPUs, 4 GB)
+## Later boots (`max,sve=off,sme=off,pauth=off`, 8 vCPUs, 4 GB)
 
-| From launch | Over USB, all cores | From the icon, cores 0–2 |
-|---|---|---|
-| Root shell on hvc1 (systemd up) | 2.3 min | 4.9 min |
-| System `running`, no emergency shell | ~6 min | |
-| Hyprland started | 7.7 min | ~19 min |
-| Omarchy bar and wallpaper drawn | 14 min | not reached at 22 min |
+| From launch | Icon, shared-uid Termux:X11, all cores (landscape) | Over USB, all cores (portrait) | Icon, regular Termux:X11, cores 0–2 (portrait) |
+|---|---|---|---|
+| Root shell on hvc1 (systemd up) | 1.8 min | 2.3 min | 4.9 min |
+| System `running`, no emergency shell | | ~6 min | |
+| SDDM started | 3.8 min | | |
+| Hyprland started | 5.0 min | 7.7 min | ~19 min |
+| Omarchy bar process up | 5.4 min | | |
+| Desktop settled (bar, wallpaper, the settle service's config reload done) | ~10 min | 14 min | not reached at 22 min |
 
-## CPU cores: icon launch vs USB launch
+Times from the guest: `ps -eo etimes,comm` for process ages and
+`journalctl -b -o short-monotonic` for unit timestamps (the kernel starts
+about 30 s after QEMU).
 
-Samsung moves an app's whole process tree between core groups by what is on
-screen. QEMU runs inside Termux, so with Termux:X11 in front:
+## CPU cores: which Termux:X11 build
 
-| Launched from | QEMU's cpuset | Cores |
-|---|---|---|
-| Home-screen icon (Termux) | `/moderate` | 0–2 (Cortex-A510 efficiency cores) |
-| `scripts/vm-up.sh` over USB (adbd) | `/` | 0–7 (all, including the Cortex-X3) |
+Android moves an app's whole process tree between core groups by what is on
+screen. QEMU runs inside Termux, so what counts is whether Termux is "on
+screen" while Termux:X11 shows Omarchy:
 
-Bringing Termux itself to the front moves QEMU to `/top-app` (0–7), and it
-drops back once Termux:X11 is in front again. On the efficiency cores, a boot
-to Hyprland took about 19 minutes.
+| Termux:X11 build | Launched from | QEMU's cpuset | Cores |
+|---|---|---|---|
+| regular (`termux-x11-universal-debug.apk`, own uid) | home-screen icon | `/moderate` | 0–2 (Cortex-A510 efficiency cores) |
+| regular | `scripts/vm-up.sh` over USB (adbd) | `/` | 0–7 |
+| **sharedUid** (`termux-x11-universal-sharedUid-debug.apk`) | home-screen icon | `/top-app` | 0–7 (all, including the Cortex-X3) |
+
+The sharedUid build runs its activity inside the `com.termux` process (same
+uid, `android:process="com.termux"`), so Android treats Termux:X11 and Termux
+as one app on screen. `install-apps.sh` installs that build; a regular one
+already installed has to be uninstalled first (the uid cannot change in place).
+With the regular build, bringing Termux itself to the front moved QEMU to
+`/top-app`, and it dropped back once Termux:X11 was in front again; a boot to
+Hyprland on the efficiency cores took about 19 minutes.
 
 ## Device-specific notes
 

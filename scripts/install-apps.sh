@@ -12,8 +12,12 @@ TERMUX_TAG=v0.118.3
 TERMUX_APK="termux-app_${TERMUX_TAG}+github-debug_arm64-v8a.apk"
 TERMUX_SHA=72fdb596045116bf5ba1b5bdf5b26fddb9acc0bd074ad9f2da9eb0ae85e83a4e
 # Termux:X11 only publishes a rolling "nightly"; its digest comes from the API.
+# The sharedUid build runs inside the Termux process (same uid, same cpuset),
+# so Android keeps the VM on all cores while Termux:X11 is on screen. The
+# regular build gets its own uid, and Termux, and the VM with it, count as a
+# background app whenever Termux:X11 is in front.
 X11_API=https://api.github.com/repos/termux/termux-x11/releases/tags/nightly
-X11_APK=termux-x11-universal-debug.apk
+X11_APK=termux-x11-universal-sharedUid-debug.apk
 # Termux:Widget (home-screen icon) must share the Termux build's signing key.
 WIDGET_TAG=v0.15.0
 WIDGET_APK="termux-widget-app_${WIDGET_TAG}+github.debug.apk"
@@ -56,6 +60,13 @@ if adb shell pm list packages com.termux | grep -qx package:com.termux; then
   fi
 fi
 adb install -r termux.apk
+# A Termux:X11 that was installed with its own uid cannot update to the shared
+# one; it has to go first (its settings are re-applied by the launcher).
+if adb shell pm list packages com.termux.x11 | grep -qx package:com.termux.x11 &&
+   ! adb shell dumpsys package com.termux.x11 | grep -q 'sharedUser=.*com.termux/'; then
+  echo "Replacing the standalone Termux:X11 with the shared-uid build."
+  adb uninstall com.termux.x11
+fi
 adb install -r termux-x11.apk
 adb install -r termux-widget.apk
 

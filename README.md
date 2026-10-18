@@ -31,20 +31,21 @@ It works, and it is slow. Stock Android gives apps no hardware virtualization,
 so QEMU emulates the CPU instruction by instruction. Graphics are fast (real
 GPU); everything the CPU does is several times slower than native.
 
-| Galaxy S23 (Snapdragon 8 Gen 2) | Over USB (all cores) | From the icon (efficiency cores) |
+| Galaxy S23 (Snapdragon 8 Gen 2) | All cores (shared-uid Termux:X11, or launched over USB) | Efficiency cores only (regular Termux:X11 from the icon) |
 |---|---|---|
 | First boot to setup screen | about 35 min (Omarchy creates its keys and finishes hardware setup) | |
-| Later boots: Hyprland running | about 8 min | about 19 min |
-| Later boots: full desktop (bar, wallpaper) | about 14 min | 25+ min |
+| Later boots: Hyprland running | about 5 min | about 19 min |
+| Later boots: full desktop (bar, wallpaper, config settled) | about 10 min | 25+ min |
 | Desktop | usable but sluggish; apps take seconds to open | slower still |
 
 **Known limits**
 
-- **Launching from the icon runs on the slow cores.** While Termux:X11 shows
-  Omarchy, Android counts Termux (which runs the VM) as a background app and
-  limits it to the phone's efficiency cores. Launched over USB with
-  `scripts/vm-up.sh`, the VM gets every core and is several times faster. The
-  standalone app on the [roadmap](#roadmap) removes this limit.
+- **Termux:X11 must be the shared-uid build.** Android gives an app that is
+  not on screen only the efficiency cores. With the regular Termux:X11, Termux
+  (which runs the VM) counts as background whenever Omarchy is on screen, and
+  boots take two to three times longer. `install-apps.sh` installs the
+  `sharedUid` build, which runs inside the Termux process, so the VM keeps
+  every core.
 - **Hyprland is patched in the guest.** Hyprland gives each Lua config reload
   1.5 s, a constant compiled into it, and Omarchy's config takes longer on an
   emulated CPU ("Your config has errors … execution timed out"). The guest
@@ -177,8 +178,7 @@ and Limine kernel paths.
 ## Roadmap
 
 - **Standalone app.** QEMU, the GPU drivers and the display in one APK: no
-  Termux, no computer, and the VM always in the foreground app, so it gets
-  every CPU core.
+  Termux, no computer.
 - **Phone-only install.** Install Termux, paste one line, done.
 - **Native tier.** Omarchy as the phone's only OS on phones with an unlockable
   bootloader and mainline Linux (OnePlus 6/6T, Poco F1, and the international
