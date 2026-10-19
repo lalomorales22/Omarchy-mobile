@@ -35,7 +35,6 @@ step "Checking this computer"
 if [ "$(uname)" = Darwin ]; then hint="brew install"; else hint="sudo apt install"; fi
 command -v adb >/dev/null || die "adb is missing: $([ "$(uname)" = Darwin ] && echo 'brew install --cask android-platform-tools' || echo 'sudo apt install adb')"
 command -v curl >/dev/null || die "curl is missing: $hint curl"
-command -v jq >/dev/null || die "jq is missing: $hint jq"
 command -v shasum >/dev/null || die "shasum is missing: $hint perl"
 
 step "Finding the phone"

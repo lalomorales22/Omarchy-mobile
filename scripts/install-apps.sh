@@ -8,32 +8,32 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-TERMUX_TAG=v0.118.3
-TERMUX_APK="termux-app_${TERMUX_TAG}+github-debug_arm64-v8a.apk"
-TERMUX_SHA=72fdb596045116bf5ba1b5bdf5b26fddb9acc0bd074ad9f2da9eb0ae85e83a4e
-# Termux:X11 only publishes a rolling "nightly"; its digest comes from the API.
-# The sharedUid build runs inside the Termux process (same uid, same cpuset),
-# so Android keeps the VM on all cores while Termux:X11 is on screen. The
+# The apps come from this repo's "apps-1" release: unmodified copies of the
+# official GitHub builds (Termux 0.118.3, Termux:X11 nightly at fa3a8b4 in its
+# sharedUid flavour, Termux:Widget 0.15.0), mirrored so the install does not
+# depend on upstream's rolling links, with their upstream checksums. The
+# sharedUid Termux:X11 runs inside the Termux process (same uid, same cpuset),
+# so Android keeps the VM on all cores while Termux:X11 is on screen; the
 # regular build gets its own uid, and Termux, and the VM with it, count as a
 # background app whenever Termux:X11 is in front.
-X11_API=https://api.github.com/repos/termux/termux-x11/releases/tags/nightly
-X11_APK=termux-x11-universal-sharedUid-debug.apk
-# Termux:Widget (home-screen icon) must share the Termux build's signing key.
-WIDGET_TAG=v0.15.0
-WIDGET_APK="termux-widget-app_${WIDGET_TAG}+github.debug.apk"
+APPS=https://github.com/lalomorales22/Omarchy-mobile/releases/download/apps-1
+TERMUX_APK=termux-app-v0.118.3-arm64-v8a.apk
+TERMUX_SHA=72fdb596045116bf5ba1b5bdf5b26fddb9acc0bd074ad9f2da9eb0ae85e83a4e
+X11_APK=termux-x11-1.03.01-fa3a8b4-sharedUid.apk
+X11_SHA=cd72ac672bc51ecd6f81e04d5941e05fe1db325f0c3fe97ad4c8729ecab24187
+WIDGET_APK=termux-widget-v0.15.0.apk
 WIDGET_SHA=780ae459be479bedef2146eb00f7bc79f2a4f89dba2bffa7b55c470165bc66ed
 
 mkdir -p .cache/apk && cd .cache/apk
 
-curl -fL -o termux.apk "https://github.com/termux/termux-app/releases/download/$TERMUX_TAG/${TERMUX_APK//+/%2B}"
-echo "$TERMUX_SHA  termux.apk" | shasum -a 256 -c
-
-x11_sha=$(curl -fsSL "$X11_API" | jq -r --arg n "$X11_APK" '.assets[] | select(.name==$n) | .digest' | sed 's/^sha256://')
-curl -fL -o termux-x11.apk "https://github.com/termux/termux-x11/releases/download/nightly/$X11_APK"
-echo "$x11_sha  termux-x11.apk" | shasum -a 256 -c
-
-curl -fL -o termux-widget.apk "https://github.com/termux/termux-widget/releases/download/$WIDGET_TAG/${WIDGET_APK//+/%2B}"
-echo "$WIDGET_SHA  termux-widget.apk" | shasum -a 256 -c
+fetch() { # file sha
+  [ -f "$1" ] && echo "$2  $1" | shasum -a 256 -c >/dev/null 2>&1 && return 0
+  curl -fL -o "$1" "$APPS/$1"
+  echo "$2  $1" | shasum -a 256 -c
+}
+fetch "$TERMUX_APK" "$TERMUX_SHA"
+fetch "$X11_APK" "$X11_SHA"
+fetch "$WIDGET_APK" "$WIDGET_SHA"
 
 # Play Protect's "verify apps over USB" rejects sideloaded debug builds.
 adb shell settings put global verifier_verify_adb_installs 0
@@ -59,7 +59,7 @@ if adb shell pm list packages com.termux | grep -qx package:com.termux; then
     adb uninstall com.termux
   fi
 fi
-adb install -r termux.apk
+adb install -r "$TERMUX_APK"
 # A Termux:X11 that was installed with its own uid cannot update to the shared
 # one; it has to go first (its settings are re-applied by the launcher).
 if adb shell pm list packages com.termux.x11 | grep -qx package:com.termux.x11 &&
@@ -67,8 +67,8 @@ if adb shell pm list packages com.termux.x11 | grep -qx package:com.termux.x11 &
   echo "Replacing the standalone Termux:X11 with the shared-uid build."
   adb uninstall com.termux.x11
 fi
-adb install -r termux-x11.apk
-adb install -r termux-widget.apk
+adb install -r "$X11_APK"
+adb install -r "$WIDGET_APK"
 
 adb shell am start -n com.termux/.app.TermuxActivity >/dev/null
 for _ in $(seq 1 40); do

@@ -71,12 +71,17 @@ another phone? See [Adding your phone](#adding-your-phone).
 
 You need:
 
-- a Mac or Linux computer with `adb`, `curl` and `jq`
-  (macOS: `brew install --cask android-platform-tools && brew install jq`;
-  Debian/Ubuntu: `sudo apt install adb curl jq`)
+- a Mac or Linux computer with `adb` and `curl`
+  (macOS: `brew install --cask android-platform-tools`;
+  Debian/Ubuntu: `sudo apt install adb curl`)
 - a 64-bit Android phone with about 16 GB free, 8 GB of RAM recommended, and
   **USB debugging** on (Settings > About phone > Software information: tap
   "Build number" 7 times, then Settings > Developer options > USB debugging)
+
+The three Android apps (Termux, the shared-uid Termux:X11, Termux:Widget)
+are mirrored, checksum-verified, in this repo's
+[apps release](https://github.com/lalomorales22/Omarchy-mobile/releases/tag/apps-1);
+the installer downloads them from there.
 
 Connect the phone, accept the "Allow USB debugging?" prompt, then:
 

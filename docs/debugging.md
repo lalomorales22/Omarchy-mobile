@@ -92,11 +92,16 @@ running as the Termux app can reach the socket.
 - **Restarting the desktop session from the debug shell:** stop the user
   manager too (`systemctl stop sddm user@1000.service; systemctl start sddm`).
   Otherwise uwsm finds the old session and the new autologin exits at once.
-- **A dock of app icons at the bottom, and windows open floating.** That
-  workspace is in Omarchy 4's floating layout; the dock (`omarchy.dock`) only
-  shows on floating workspaces. SUPER+L cycles tiling → floating → scrolling,
-  SUPER+ALT+L goes back, and the bar's first icon shows the current mode.
-  Omarchy remembers it per workspace.
+- **A dock of app icons at the bottom, and windows open floating, back
+  after every boot.** That workspace is in Omarchy 4's floating layout; the
+  dock (`omarchy.dock`) only shows on floating workspaces. SUPER+L cycles
+  tiling → scrolling → floating, SUPER+ALT+L goes back, and the bar's first
+  icon shows the current mode. The choice is saved under
+  `~/.local/state/omarchy/workspace-layouts/` (`<workspace>.lua`, or
+  `default.lua` from the menu's Appearance > Workspace Layout) and restored
+  at every login, so it comes back until it is cycled onto the default with
+  SUPER+L again, which deletes the saved file. On the key bar: tap SUPER,
+  then L on the soft keyboard (the ⌨ key opens it).
 - **Bar or windows under the camera or rounded corners.** `start-vm.sh` sets
   Termux:X11's `hideCutout=false`, so the picture stays out of the cutout
   (top edge in portrait, the camera side in landscape; that also clears that
